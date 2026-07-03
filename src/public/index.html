@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Last-Mile Delivery Tracker</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  
+  <!-- App Header & Navigation Bar -->
+  <header>
+    <div class="nav-container">
+      <div class="logo">
+        <!-- SVG Truck Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="3" width="15" height="13" rx="2" ry="2"></rect>
+          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+          <circle cx="5.5" cy="18.5" r="2.5"></circle>
+          <circle cx="18.5" cy="18.5" r="2.5"></circle>
+        </svg>
+        <span>Last-Mile Logistics</span>
+      </div>
+      
+
+      <nav>
+        <ul>
+          <li id="nav-user-info" style="display: none;">
+            <span id="nav-user-name" style="font-weight: 600; color: var(--neutral-100);">User</span> 
+            <span id="nav-user-role" class="badge badge-created" style="margin-left: 6px;">Role</span>
+          </li>
+          <li id="nav-logout" style="display: none;">
+            <a href="#" onclick="logout(); return false;" class="text-danger" style="font-weight: 500;">Logout</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Application Body -->
+  <main>
+    
+    <!-- 1. Authentication Section (Login / Registration) -->
+    <section id="auth-section" class="page-section active">
+      <div class="auth-container glass-panel">
+        <div class="auth-header">
+          <h1 id="auth-title">Welcome Back</h1>
+          <p id="auth-subtitle">Sign in to track and manage shipments</p>
+        </div>
+        
+        <!-- Inline status banner (replaces alert() calls) -->
+        <div id="auth-banner" style="display:none;" role="alert"></div>
+
+        <!-- Login Form -->
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input type="email" id="login-email" class="form-control" placeholder="name@company.com" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Sign In</button>
+        </form>
+
+        <!-- B2C Registration Form -->
+        <form id="register-form-b2c" style="display: none;">
+          <div class="form-group">
+            <label for="reg-b2c-name">Full Name</label>
+            <input type="text" id="reg-b2c-name" class="form-control" placeholder="e.g. John Doe" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-b2c-email">Email Address</label>
+            <input type="email" id="reg-b2c-email" class="form-control" placeholder="name@example.com" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="reg-b2c-password">Password</label>
+            <input type="password" id="reg-b2c-password" class="form-control" placeholder="••••••••" required autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="reg-b2c-role">Account Type</label>
+            <select id="reg-b2c-role" class="form-control" required>
+              <option value="customer">Customer (Place Shipments)</option>
+              <option value="delivery_agent">Delivery Agent (Deliver Shipments)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="reg-b2c-phone">Phone Number (For SMS)</label>
+            <input type="tel" id="reg-b2c-phone" class="form-control" placeholder="+15550100" autocomplete="tel">
+          </div>
+          <div class="form-group">
+            <label for="reg-b2c-address">House Address</label>
+            <input type="text" id="reg-b2c-address" class="form-control" placeholder="123 Main St, Apartment 4B" required>
+          </div>
+          <div class="form-group" style="display: flex; gap: 8px; align-items: center; margin-top: 12px; margin-bottom: 12px;">
+            <input type="checkbox" id="reg-b2c-terms" required style="width: auto; margin: 0;">
+            <label for="reg-b2c-terms" style="font-size: 0.8rem; margin: 0; user-select: none; color: var(--neutral-300);">I agree to all terms and conditions</label>
+          </div>
+          <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Create Account</button>
+          
+          <div style="margin-top: 15px; text-align: center; font-size: 0.85rem; color: var(--neutral-300);">
+            <span>Are you a business?</span> <a href="#" onclick="switchRegisterMode('b2b'); return false;" style="color: var(--primary);">Register here</a>
+          </div>
+        </form>
+
+        <!-- B2B Registration Form -->
+        <form id="register-form-b2b" style="display: none;">
+          <input type="hidden" id="reg-b2b-role" value="customer">
+          <div class="form-group">
+            <label for="reg-b2b-company-name">Company Name</label>
+            <input type="text" id="reg-b2b-company-name" class="form-control" placeholder="e.g. Acme Corp" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-b2b-company-address">Company Address</label>
+            <input type="text" id="reg-b2b-company-address" class="form-control" placeholder="456 Corporate Blvd, Suite 100" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-b2b-email">Company Email</label>
+            <input type="email" id="reg-b2b-email" class="form-control" placeholder="contact@company.com" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="reg-b2b-password">Password</label>
+            <input type="password" id="reg-b2b-password" class="form-control" placeholder="••••••••" required autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="reg-b2b-phone">Company Phone (Optional)</label>
+            <input type="tel" id="reg-b2b-phone" class="form-control" placeholder="+15550100" autocomplete="tel">
+          </div>
+          <div class="form-group">
+            <label for="reg-b2b-gstin">GSTIN Number (Optional)</label>
+            <input type="text" id="reg-b2b-gstin" class="form-control" placeholder="e.g. 07AAAAA1111A1Z1">
+          </div>
+          <div class="form-group" style="display: flex; gap: 8px; align-items: center; margin-top: 12px; margin-bottom: 12px;">
+            <input type="checkbox" id="reg-b2b-terms" required style="width: auto; margin: 0;">
+            <label for="reg-b2b-terms" style="font-size: 0.8rem; margin: 0; user-select: none; color: var(--neutral-300);">I agree to all terms and conditions</label>
+          </div>
+          <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Create B2B Account</button>
+          
+          <div style="margin-top: 15px; text-align: center; font-size: 0.85rem; color: var(--neutral-300);">
+            <a href="#" onclick="switchRegisterMode('b2c'); return false;" style="color: var(--primary);">Register as individual customer</a>
+          </div>
+        </form>
+
+        <div class="auth-footer">
+          <p id="auth-toggle-msg">Don't have an account? <a href="#" onclick="toggleAuthForm(true); return false;">Register here</a></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Admin Dashboard Section -->
+    <section id="admin-dashboard" class="page-section">
+      <div class="dashboard-header">
+        <h1>Admin Control Center</h1>
+        <button type="button" class="btn" onclick="openOrderModal('admin')">Create Order</button>
+      </div>
+
+      <!-- Stats Summary row -->
+      <div class="stats-row">
+        <div class="glass-panel stat-card">
+          <div class="label">Total Shipments</div>
+          <div class="value" id="admin-stat-total">0</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="label">Pending Assign</div>
+          <div class="value text-warning" id="admin-stat-pending">0</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="label">Out for Delivery</div>
+          <div class="value text-primary" id="admin-stat-transit">0</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="label">Failed Delivery</div>
+          <div class="value text-danger" id="admin-stat-failed">0</div>
+        </div>
+      </div>
+
+      <!-- Tabs for Admin Navigation -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="switchAdminTab('orders-pane', this)">Orders List</button>
+        <button class="admin-tab" onclick="switchAdminTab('settings-pane', this)">Rate Cards & Zones</button>
+        <button class="admin-tab" onclick="switchAdminTab('logs-pane', this)">Notification Audit Logs</button>
+      </div>
+
+      <!-- Tab A: Orders List -->
+      <div id="orders-pane" class="admin-pane active">
+        <search>
+          <form id="admin-filter-form" onsubmit="event.preventDefault(); loadAdminOrders();">
+            <div class="search-container">
+              <div style="flex: 1; min-width: 150px;">
+                <label for="filter-status" class="text-muted" style="font-size: 0.8rem;">Status</label>
+                <select id="filter-status" class="form-control" onchange="loadAdminOrders()">
+                  <option value="">All Statuses</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Assigned">Assigned</option>
+                  <option value="Picked Up">Picked Up</option>
+                  <option value="In Transit">In Transit</option>
+                  <option value="Out for Delivery">Out for Delivery</option>
+                  <option value="Delivered">Delivered</option>
+                  <option value="Failed">Failed</option>
+                </select>
+              </div>
+              <div style="flex: 1; min-width: 150px;">
+                <label for="filter-zone" class="text-muted" style="font-size: 0.8rem;">Zone</label>
+                <select id="filter-zone" class="form-control" onchange="loadAdminOrders()">
+                  <option value="">All Zones</option>
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+              <div style="flex: 1; min-width: 150px;">
+                <label for="filter-agent" class="text-muted" style="font-size: 0.8rem;">Delivery Agent</label>
+                <select id="filter-agent" class="form-control" onchange="loadAdminOrders()">
+                  <option value="">All Agents</option>
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+            </div>
+          </form>
+        </search>
+
+        <div class="glass-panel table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Pickup Zone</th>
+                <th>Drop Zone</th>
+                <th>Chargeable Wt.</th>
+                <th>Total Cost</th>
+                <th>Status</th>
+                <th>Agent</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-orders-table">
+              <tr>
+                <td colspan="9" style="text-align: center;" class="text-muted">Loading orders...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab B: Configuration & Settings -->
+      <div id="settings-pane" class="admin-pane">
+        <div class="grid-3">
+          
+          <!-- Zones & Areas Management -->
+          <div class="glass-panel">
+            <h2 class="mb-4" style="font-size: 1.25rem;">Zones & Areas</h2>
+            <form id="admin-zone-form" class="mb-4">
+              <h3 style="font-size: 0.95rem;" class="mb-4 text-primary">Create New Zone</h3>
+              <div class="form-group">
+                <label for="zone-name">Zone Name</label>
+                <input type="text" id="zone-name" class="form-control" placeholder="e.g. Zone Gamma" required>
+              </div>
+              <div class="form-group">
+                <label for="zone-code">Zone Code</label>
+                <input type="text" id="zone-code" class="form-control" placeholder="e.g. ZONE_G" required>
+              </div>
+              <div class="form-group">
+                <label for="zone-desc">Description</label>
+                <input type="text" id="zone-desc" class="form-control" placeholder="Optional details">
+              </div>
+              <button type="submit" class="btn" style="width: 100%;">Create Zone</button>
+            </form>
+
+            <form id="admin-area-form">
+              <h3 style="font-size: 0.95rem;" class="mb-4 text-primary">Assign Area to Zone</h3>
+              <div class="form-group">
+                <label for="area-zone-id">Select Zone</label>
+                <select id="area-zone-id" class="form-control" required></select>
+              </div>
+              <div class="form-group">
+                <label for="area-name">Area Name</label>
+                <input type="text" id="area-name" class="form-control" placeholder="e.g. Times Square" required>
+              </div>
+              <div class="form-group">
+                <label for="area-postal">Postal Code (Pincode)</label>
+                <input type="text" id="area-postal" class="form-control" placeholder="e.g. 10036" required>
+              </div>
+              <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div>
+                  <label for="area-lat">Latitude</label>
+                  <input type="number" id="area-lat" class="form-control" step="0.0001" placeholder="40.7580">
+                </div>
+                <div>
+                  <label for="area-lon">Longitude</label>
+                  <input type="number" id="area-lon" class="form-control" step="0.0001" placeholder="-73.9855">
+                </div>
+              </div>
+              <button type="submit" class="btn" style="width: 100%;">Add Area</button>
+            </form>
+          </div>
+
+          <!-- Rate Cards Manager -->
+          <div class="glass-panel" style="grid-column: span 2;">
+            <h2 class="mb-4" style="font-size: 1.25rem;">Rate Card Configurations</h2>
+            
+            <form id="admin-ratecard-form" class="mb-4">
+              <h3 style="font-size: 0.95rem;" class="mb-4 text-primary">Add / Override Rate Card</h3>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                <div class="form-group">
+                  <label for="rc-name">Rate Card Name</label>
+                  <input type="text" id="rc-name" class="form-control" placeholder="e.g. Central Express" required>
+                </div>
+                <div class="form-group">
+                  <label for="rc-order-type">Order Type</label>
+                  <select id="rc-order-type" class="form-control" required>
+                    <option value="B2B">B2B</option>
+                    <option value="B2C">B2C</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="rc-rate-type">Route Type</label>
+                  <select id="rc-rate-type" class="form-control" required onchange="toggleZoneSelectors()">
+                    <option value="intra">Intra-Zone (Within same zone)</option>
+                    <option value="inter">Inter-Zone (Between different zones)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div id="rc-zones-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div class="form-group">
+                  <label for="rc-zone-from">From Zone</label>
+                  <select id="rc-zone-from" class="form-control">
+                    <option value="">Any Zone (Fallback)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="rc-zone-to">To Zone</label>
+                  <select id="rc-zone-to" class="form-control">
+                    <option value="">Any Zone (Fallback)</option>
+                  </select>
+                </div>
+              </div>
+              <p id="rc-zone-hint" class="text-muted" style="font-size: 0.8rem; margin-top: -4px; margin-bottom: 12px;">Leave both zones empty to create a generic fallback card. Use the same zone twice for an intra-zone override.</p>
+
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px;">
+                <div class="form-group">
+                  <label for="rc-base-weight">Base Weight (kg)</label>
+                  <input type="number" id="rc-base-weight" class="form-control" step="0.1" value="1.0" required>
+                </div>
+                <div class="form-group">
+                  <label for="rc-base-rate">Base Rate ($)</label>
+                  <input type="number" id="rc-base-rate" class="form-control" step="0.01" placeholder="40.00" required>
+                </div>
+                <div class="form-group">
+                  <label for="rc-excess-rate">Excess Rate/kg ($)</label>
+                  <input type="number" id="rc-excess-rate" class="form-control" step="0.01" placeholder="8.00" required>
+                </div>
+              </div>
+
+              <button type="submit" class="btn">Save Rate Card</button>
+            </form>
+
+            <h3 style="font-size: 0.95rem;" class="mb-4 text-primary">COD Surcharge Settings</h3>
+            <form id="admin-settings-form" style="display: flex; gap: 12px; align-items: flex-end; margin-bottom: 24px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 150px;">
+                <label for="set-cod-b2b" class="text-muted" style="font-size: 0.8rem;">COD Surcharge B2B ($)</label>
+                <input type="number" id="set-cod-b2b" class="form-control" step="0.01" required>
+              </div>
+              <div style="flex: 1; min-width: 150px;">
+                <label for="set-cod-b2c" class="text-muted" style="font-size: 0.8rem;">COD Surcharge B2C ($)</label>
+                <input type="number" id="set-cod-b2c" class="form-control" step="0.01" required>
+              </div>
+              <button type="submit" class="btn">Update Surcharges</button>
+            </form>
+
+            <details>
+              <summary>View Configured Rate Cards & System Zones</summary>
+              <div class="details-content">
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Route</th>
+                        <th>From/To</th>
+                        <th>Base Weight</th>
+                        <th>Base Rate</th>
+                        <th>Excess/kg</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ratecards-list-table">
+                      <!-- Populated dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab C: Notification Audit Logs -->
+      <div id="logs-pane" class="admin-pane">
+        <div class="glass-panel">
+          <div class="flex-between mb-4">
+            <h2 style="font-size: 1.25rem;">Notification Audit Logs</h2>
+            <button class="btn btn-secondary btn-seed" onclick="loadAuditLogs()">Refresh Logs</button>
+          </div>
+          <p class="text-muted mb-4" style="font-size: 0.85rem;">Review email and SMS communications processed by the tracker system. Outbound emails are also logged locally in `sent_emails.log`.</p>
+          <div class="log-list" id="audit-log-container">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Customer Dashboard Section -->
+    <section id="customer-dashboard" class="page-section">
+      <div class="dashboard-header">
+        <h1>Delivery Dashboard</h1>
+        <button type="button" class="btn" onclick="openOrderModal('customer')">Create Shipment</button>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Shipments list -->
+        <div class="glass-panel">
+          <h2 class="mb-4" style="font-size: 1.25rem;">Your Shipments</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Pickup Address</th>
+                  <th>Drop Address</th>
+                  <th>Total Cost</th>
+                  <th>Status</th>
+                  <th>Tracking</th>
+                </tr>
+              </thead>
+              <tbody id="customer-orders-table">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Help Widget -->
+        <div class="glass-panel">
+          <h2 class="mb-4" style="font-size: 1.25rem;">Quick Details</h2>
+          <p class="text-muted mb-4" style="font-size: 0.85rem;">Welcome to the Last-Mile logistics dashboard. Here you can place orders, preview rates based on package weight and dimensions, and track shipments live.</p>
+          <div style="background: rgba(14, 165, 233, 0.05); padding: 12px; border-radius: 8px; border-left: 4px solid var(--primary); font-size: 0.85rem;">
+            <strong>Pricing Note:</strong> Chargeable weight is billed on the higher of actual weight vs volumetric weight (L×B×H ÷ 5000). COD payments include a surcharge.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Agent Dashboard Section -->
+    <section id="agent-dashboard" class="page-section">
+      <div class="dashboard-header">
+        <h1>Agent Console</h1>
+      </div>
+
+      <!-- Agent Location Mocker Widget -->
+      <div class="glass-panel location-mocker">
+        <h2 style="font-size: 1.15rem; color: var(--primary);">Live Location Mocker</h2>
+        <p class="text-muted" style="font-size: 0.8rem;">Simulate your GPS coordinates and current active zone. The auto-assignment engine uses this data to assign orders in real-time.</p>
+        <form id="agent-location-form" class="mocker-grid">
+          <div>
+            <label for="agent-lat" class="text-muted" style="font-size: 0.75rem;">Latitude</label>
+            <input type="number" id="agent-lat" class="form-control" step="0.0001" value="28.6304" required>
+          </div>
+          <div>
+            <label for="agent-lon" class="text-muted" style="font-size: 0.75rem;">Longitude</label>
+            <input type="number" id="agent-lon" class="form-control" step="0.0001" value="77.2177" required>
+          </div>
+          <div>
+            <label for="agent-zone" class="text-muted" style="font-size: 0.75rem;">Current Zone</label>
+            <select id="agent-zone" class="form-control">
+              <option value="">No Zone</option>
+              <!-- Filled dynamically -->
+            </select>
+          </div>
+          <button type="submit" class="btn btn-success" style="align-self: flex-end; height: 42px;">Sync Location</button>
+        </form>
+      </div>
+
+      <!-- Shipments Assigned to Agent -->
+      <div class="glass-panel">
+        <h2 class="mb-4" style="font-size: 1.25rem;">Active Deliveries</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Pickup Address</th>
+                <th>Drop Address</th>
+                <th>Type</th>
+                <th>Payment</th>
+                <th>Total Value</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="agent-orders-table">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Order Tracking & Details Section -->
+    <section id="order-details-section" class="page-section">
+      <div class="dashboard-header">
+        <button class="btn btn-secondary" onclick="goBackToDashboard()">← Back to Dashboard</button>
+        <h1>Order Tracking History</h1>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Order details panel -->
+        <div class="glass-panel" id="order-details-card">
+          <!-- Filled dynamically -->
+        </div>
+
+        <!-- Tracking Timeline -->
+        <div class="glass-panel">
+          <h2 style="font-size: 1.25rem;">Status Timeline</h2>
+          <div class="timeline" id="order-timeline-flow">
+            <!-- Filled dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- NATIVE MODAL DIALOGS -->
+
+  <!-- A. Create Order Dialog -->
+  <dialog id="order-modal">
+    <div class="dialog-header">
+      <h2 style="font-size: 1.25rem;">Create New Shipment</h2>
+      <button class="dialog-close" onclick="closeOrderModal()">×</button>
+    </div>
+    <form id="order-creation-form" class="mt-4">
+      <input type="hidden" id="order-modal-creator-role" value="customer">
+
+      <!-- Customer Selection (Visible only to Admin) -->
+      <div class="form-group" id="admin-customer-selector-group" style="display: none;">
+        <label for="order-customer-id">Select Customer</label>
+        <select id="order-customer-id" class="form-control"></select>
+      </div>
+
+      <div class="form-group">
+        <label for="order-pickup-addr">Pickup Address</label>
+        <input type="text" id="order-pickup-addr" class="form-control" placeholder="123 Alpha Block, Connaught Place" required>
+      </div>
+
+      <div class="form-group">
+        <label for="order-pickup-postal">Pickup Pincode / Postal Code</label>
+        <input type="text" id="order-pickup-postal" class="form-control" placeholder="e.g. 110001" list="pincodes-list" required oninput="triggerRateCalculation()">
+      </div>
+
+      <div class="form-group">
+        <label for="order-drop-addr">Drop Address</label>
+        <input type="text" id="order-drop-addr" class="form-control" placeholder="456 Beta Rd, Saket" required>
+      </div>
+
+      <div class="form-group">
+        <label for="order-drop-postal">Drop Pincode / Postal Code</label>
+        <input type="text" id="order-drop-postal" class="form-control" placeholder="e.g. 110017" list="pincodes-list" required oninput="triggerRateCalculation()">
+      </div>
+
+      <!-- Autocomplete suggestion list -->
+      <datalist id="pincodes-list"></datalist>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+        <div class="form-group">
+          <label for="order-length">Length (cm)</label>
+          <input type="number" id="order-length" class="form-control" min="1" value="10" required onchange="triggerRateCalculation()">
+        </div>
+        <div class="form-group">
+          <label for="order-width">Width (cm)</label>
+          <input type="number" id="order-width" class="form-control" min="1" value="10" required onchange="triggerRateCalculation()">
+        </div>
+        <div class="form-group">
+          <label for="order-height">Height (cm)</label>
+          <input type="number" id="order-height" class="form-control" min="1" value="10" required onchange="triggerRateCalculation()">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label for="order-weight">Actual Weight (kg)</label>
+          <input type="number" id="order-weight" class="form-control" step="0.01" min="0.1" value="1.0" required onchange="triggerRateCalculation()">
+        </div>
+        <div class="form-group">
+          <label for="order-type">Order Type</label>
+          <select id="order-type" class="form-control" required onchange="triggerRateCalculation()">
+            <option value="B2C">B2C (Retail)</option>
+            <option value="B2B">B2B (Corporate)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="order-payment">Payment Type</label>
+        <select id="order-payment" class="form-control" required onchange="triggerRateCalculation()">
+          <option value="Prepaid">Prepaid</option>
+          <option value="COD">Cash on Delivery (COD)</option>
+        </select>
+      </div>
+
+      <!-- Dynamic Price Breakdown (Previews automatically as form changes) -->
+      <div class="pricing-breakdown" id="modal-pricing-breakdown" style="display: none;">
+        <!-- Computed charges loaded here -->
+      </div>
+
+      <div class="mt-4" style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeOrderModal()">Cancel</button>
+        <button type="submit" class="btn" id="btn-confirm-order">Confirm & Place Order</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- B. Agent Status Override / Update Dialog -->
+  <dialog id="status-modal">
+    <div class="dialog-header">
+      <h2 style="font-size: 1.25rem;">Update Shipment Status</h2>
+      <button class="dialog-close" onclick="closeStatusModal()">×</button>
+    </div>
+    <form id="status-update-form" class="mt-4">
+      <input type="hidden" id="status-modal-order-id">
+      <input type="hidden" id="status-modal-user-role" value="agent">
+      
+      <div class="form-group">
+        <label for="status-select">Select New Status</label>
+        <select id="status-select" class="form-control" required onchange="toggleFailedReasonGroup()">
+          <option value="Picked Up">Picked Up</option>
+          <option value="In Transit">In Transit</option>
+          <option value="Out for Delivery">Out for Delivery</option>
+          <option value="Delivered">Delivered</option>
+          <option value="Failed">Failed (Delivery Unsuccessful)</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="failed-reason-group" style="display: none;">
+        <label for="status-failed-reason">Failure Reason</label>
+        <select id="status-failed-reason" class="form-control">
+          <option value="Customer unavailable/not answering phone">Customer unavailable</option>
+          <option value="Incorrect delivery address provided">Incorrect address</option>
+          <option value="Refused delivery / Rejected COD charges">Refused by recipient</option>
+          <option value="Unreachable area / Road blockage">Unreachable location</option>
+        </select>
+      </div>
+
+      <div class="mt-4" style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeStatusModal()">Cancel</button>
+        <button type="submit" class="btn">Update Status</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- C. Manual Agent Assignment Dialog (Admin only) -->
+  <dialog id="assign-modal">
+    <div class="dialog-header">
+      <h2 style="font-size: 1.25rem;">Assign Delivery Agent</h2>
+      <button class="dialog-close" onclick="closeAssignModal()">×</button>
+    </div>
+    <form id="assign-agent-form" class="mt-4">
+      <input type="hidden" id="assign-modal-order-id">
+      
+      <div style="background: rgba(14, 165, 233, 0.05); padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px;" id="assign-modal-route-info">
+        Pickup Zone: <strong>Zone A</strong>
+      </div>
+
+      <div class="form-group">
+        <label for="assign-select-mode">Assignment Method</label>
+        <select id="assign-select-mode" class="form-control" onchange="toggleAssignMode()">
+          <option value="auto">Auto-Assign to nearest/available agent (System Calculated)</option>
+          <option value="manual">Manually select agent from list</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="manual-agent-select-group" style="display: none;">
+        <label for="assign-agent-select">Select Agent</label>
+        <select id="assign-agent-select" class="form-control">
+          <!-- Filled dynamically -->
+        </select>
+      </div>
+
+      <div class="mt-4" style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeAssignModal()">Cancel</button>
+        <button type="submit" class="btn">Save Assignment</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- D. Customer Reschedule Dialog -->
+  <dialog id="reschedule-modal">
+    <div class="dialog-header">
+      <h2 style="font-size: 1.25rem;">Reschedule Delivery Attempt</h2>
+      <button class="dialog-close" onclick="closeRescheduleModal()">×</button>
+    </div>
+    <form id="reschedule-order-form" class="mt-4">
+      <input type="hidden" id="reschedule-modal-order-id">
+      
+      <div class="form-group">
+        <label for="reschedule-date">Select New Delivery Date</label>
+        <input type="date" id="reschedule-date" class="form-control" required min="">
+      </div>
+      
+      <p class="text-muted" style="font-size: 0.8rem; margin-top: 8px;">
+        On confirming, the system will clear the previous delivery failure, reset the status, and auto-assign a fresh delivery agent to attempt delivery on your selected date.
+      </p>
+
+      <div class="mt-4" style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeRescheduleModal()">Cancel</button>
+        <button type="submit" class="btn btn-success">Confirm Reschedule</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Application Logic Scripts -->
+  <script src="js/app.js"></script>
+</body>
+</html>
