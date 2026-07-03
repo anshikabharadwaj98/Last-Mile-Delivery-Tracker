@@ -75,7 +75,8 @@ function App() {
       headers
     };
 
-    const response = await fetch(endpoint, config);
+    const API_BASE = (import.meta.env.VITE_API_URL || '');
+    const response = await fetch(API_BASE + endpoint, config);
     const data = await response.json();
 
     if (!response.ok) {

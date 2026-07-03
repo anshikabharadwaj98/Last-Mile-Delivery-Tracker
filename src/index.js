@@ -54,9 +54,20 @@ app.get('/api/seed-database', async (req, res) => {
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// SPA Fallback: Serve index.html for all other routes
+const fs = require('fs');
+
+// SPA Fallback: Serve index.html if it exists, otherwise return API status
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.json({
+      status: 'success',
+      message: 'Velocity Last-Mile API Server is active and operational.',
+      environment: process.env.DATABASE_URL ? 'production (PostgreSQL)' : 'development (SQLite)'
+    });
+  }
 });
 
 // Database Synchronization & Server Startup
