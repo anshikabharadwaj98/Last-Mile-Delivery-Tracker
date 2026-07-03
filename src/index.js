@@ -31,6 +31,26 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Temporary seeding route for easy cloud database seeding via browser
+app.get('/api/seed-database', async (req, res) => {
+  try {
+    const seed = require('./scripts/seed');
+    await seed();
+    res.json({
+      status: 'success',
+      message: 'Database seeded successfully!',
+      default_accounts: {
+        admin: 'admin@tracker.com / admin123',
+        customer: 'customer@tracker.com / customer123',
+        retail: 'retail@tracker.com / retail123',
+        agent: 'agent1@tracker.com / agent123'
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
