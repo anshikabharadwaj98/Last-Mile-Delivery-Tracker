@@ -7,7 +7,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: process.env.VERCEL ? 'dist' : '../src/public',
+    outDir: '../src/public',
     emptyOutDir: true,
   },
   resolve: {

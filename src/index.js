@@ -19,10 +19,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : '*',
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
@@ -34,23 +31,12 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/admin', adminRoutes);
 
-const fs = require('fs');
-
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// SPA Fallback: Serve index.html if it exists, otherwise return API status
+// SPA Fallback: Serve index.html for all other routes
 app.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, 'public', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.json({
-      status: 'success',
-      message: 'Velocity Last-Mile API Server is active and operational.',
-      environment: process.env.DATABASE_URL ? 'production (PostgreSQL)' : 'development (SQLite)'
-    });
-  }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Database Synchronization & Server Startup
