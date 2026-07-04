@@ -1,82 +1,62 @@
-# System Design Document: Last-Mile Delivery Tracker
+### System Architecture: Behind the Scenes of Velocity Last-Mile Tracker                                                                                                           
+                                                                                                                                                                                   
+This document explains the core logic of our last-mile delivery tracking platform, written from a practical system-design perspective.                                             
+──────                                                                                                                                                                             
+### 1. Pincode-Based Zone Detection                                                                                                                                                
+                                                                                                                                                                                   
+To ensure fast deliveries, we need to know exactly which operational zone a package belongs to as soon as a customer enters the pickup and drop-off addresses.                     
+                                                                                                                                                                                   
+Instead of using heavy geographic coordinate calculations that slow down database lookups, we designed a simple, pincode-based geofencing approach.                                
+                                                                                                                                                                                   
+• How it works: We maintain a registry of operational areas where each postal code (pincode) is mapped to a specific zone (e.g., `110020` is linked to `South Delhi`).             
+• The Lookup: When an order is created, the system looks up both the pickup and drop-off pincodes in our areas database. If either pincode isn't in our system, we block the       
+  booking and let the customer know they are "Out of Service Area."                                                                                                                  
+• Zone Classification: If both pincodes belong to the same zone, the system labels it an Intra-Zone delivery. If they belong to different zones, it becomes an Inter-Zone delivery.
+  This classification directly feeds into our pricing engine.                                                                                                                        
+──────                                                                                                                                                                             
+### 2. Volumetric Rate Calculation Engine                                                                                                                                          
+                                                                                                                                                                                   
+Pricing shipments accurately is critical. We support two models: standard B2C retail rates and custom B2B contract rates. To protect our margins from bulky but lightweight        
+packages, we calculate rates using Volumetric Weight.                                                                                                                              
+                                                                                                                                                                                   
+1. Calculating Billed Weight: First, we compute the volumetric weight using the standard shipping formula:                                                                         
+                                                                                                                                                                                   
+                      Length × Width × Height (in cm)                                                                                                                              
+  Volumetric Weight = ───────────────────────────────                                                                                                                              
+                                   5000                                                                                                                                            
 
-This document describes the architectural layout, algorithmic details, and state machine workflows for the Last-Mile Delivery Tracker.
+We then charge the customer based on whichever is higher: the actual scale weight or the volumetric weight.
+2. Rate Card Selection: We query our rate cards, looking for a match in a specific order:
 
----
+• First, we look for a specific Zone-to-Zone card (e.g., `Central Delhi` to `South Delhi` for B2B).
+• If none exists, we fall back to the generic B2B or B2C rate cards based on whether it is an intra-zone or inter-zone delivery.
 
-## 1. Monolithic Architecture Style
+3. Price Calculation: We take the base rate for the first kilogram and add an excess rate for every additional kilogram (rounded up):
 
-The application is built as a **Domain-Driven Modular Monolith** to maximize code structure clean-room separation while keeping infrastructure deployment simple.
+  Final Price = Base Rate + (Additional Weight × Excess Rate per kg)
 
-```
-       [ Presentation Layer ] (Vanilla CSS/HTML/JS SPA)
-                 │
-                 ▼
-          [ API Controllers ] (Express Controllers & Middleware)
-                 │
-                 ▼
-       [ Application Services ] (Workflow Orchestrator Services)
-          /      │       \
-        /        │         \
-      ▼          ▼          ▼
-[ Repositories ] ──► [ Pure Domain Layer ] (State Machine, Engines, Rules)
-(ORM Database)
-```
+4. COD Fees: If the customer selects Cash on Delivery (COD), we automatically look up our active COD rules and append a flat surcharge to the total.
+──────
+### 3. Dispatch & Auto-Assignment Logic
 
-### Dependency Decoupling
-* **Pure Domain Layer (`src/domain/`):** Contains business entities and services (e.g., `PricingEngine`, `AssignmentStrategy`, `OrderStateMachine`). They are 100% pure JavaScript, making no database calls and depending on no external packages.
-* **Repository Layer (`src/repositories/`):** Encapsulates all database ORM (Sequelize) operations. No controller or domain service queries the database models directly.
-* **Application Services (`src/application/`):** Coordinates transactional workflows. Services fetch data through Repositories, feed it into the pure Domain Layer to run business rules, save the updated state back via Repositories, and trigger async side-effects (like notifications).
+To get packages on the road quickly without manual work, we built an automated dispatcher. It matches shipments to couriers in three steps:
 
----
+• Step 1: Filtering by Zone: The system finds all couriers who are currently online, marked as available, and physically located inside the package's pickup zone.
+• Step 2: Proximity Check: We calculate the straight-line distance between the couriers' GPS coordinates and the package's pickup location.
+• Step 3: Ranking Priorities:
+    1. Distance: The closest courier is ranked first.
+    2. Workload Balancing: If two couriers are within 150 meters of each other, we select the courier with fewer active delivery tasks. This ensures we don't overload one driver  
+    while others are free.
+    3. ID Tie-Breaker: If distance and workload are identical, a safe unique ID comparison selects the final courier.
 
-## 2. Rate Calculation Engine
+──────
+### 4. Failed Deliveries & Customer Rescheduling
 
-The Pricing Domain calculates package costs deterministically using a multi-step pipeline.
+In last-mile logistics, delivery failures (e.g., "customer not home" or "incorrect address") are common. We built a robust lifecycle state-machine to handle these cases:          
 
-### Density & Volumetric Weight
-Logistics constraints require pricing based on package density. Bulky, light packages consume truck volume disproportionately to weight. The system computes volumetric weight:
-$$\text{Volumetric Weight (kg)} = \frac{\text{Length (cm)} \times \text{Width (cm)} \times \text{Height (cm)}}{5000}$$
-The engine bills on the higher of physical actual weight vs. computed volumetric weight, establishing the **chargeable weight**:
-$$\text{Chargeable Weight} = \max(\text{Actual Weight}, \text{Volumetric Weight})$$
-
-### Rate Selection Heuristics
-The Application Service fetches rates using a fallback query sequence:
-1. **Specific Route Lookup:** Attempts to find a `RateCard` matching `order_type` (B2B/B2C) and `rate_type` (intra/inter) with specific `zone_from_id` (pickup) and `zone_to_id` (drop) to support custom premium corridors.
-2. **General Fallback Lookup:** If no specific card is configured, it queries the fallback card where zone parameters are `NULL`.
-3. **Logistics Fee Formula:**
-   $$\text{Delivery Charge} = \text{Base Rate} + \max(0, \text{Chargeable Weight} - \text{Base Weight Limit}) \times \text{Excess Rate Per Kg}$$
-4. **Cash-on-Delivery (COD) Rules:** For COD shipments, the engine retrieves the surcharge mapped in the `cod_rules` table for B2B/B2C and appends it:
-   $$\text{Total Cost} = \text{Delivery Charge} + \text{COD Surcharge}$$
-
----
-
-## 3. Zone Detection Approach
-
-Geographical lookup utilizes a deterministic **Area Postal Code Mapping** strategy.
-Admins create zones (for example Central Delhi or South Delhi) and map exact pincodes (Areas) directly to them. On order placement, the system queries the `zoneRepository` to find the zones matching the pickup and drop postal codes. 
-* If $\text{pickup\_zone\_id} = \text{drop\_zone\_id}$, route type is `intra-zone`.
-* If $\text{pickup\_zone\_id} \neq \text{drop\_zone\_id}$, route type is `inter-zone`.
-
-Mapping postal codes achieves $O(1)$ database lookup times, eliminating the performance overhead of full geographic polygon GIS intersection calculations while matching standard postal logistics practices.
-
----
-
-## 4. Auto-Assignment Heuristics
-
-The Assignment Domain selects and allocates delivery agents using a three-tier ranking strategy:
-
-1. **GPS Geodesic Proximity (Haversine Formula):** If coordinate pairs are configured for the pickup postal code (Area) and the agent's current position (mocked via the Agent console), the strategy calculates distance:
-   $$d = 2R \cdot \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta\lambda}{2}\right)}\right)$$
-   Where $R = 6371$ km. Agents are ranked by proximity. Agents within a $150$-meter range threshold are considered equivalent.
-2. **Zone Matching Fallback:** If GPS coordinates are not set, the strategy filters for agents located in the order's pickup zone.
-3. **Active Workload Balancing:** To prevent overloading active drivers, the system ranks candidates by their active shipments (orders in `Assigned`, `Picked Up`, `In Transit`, or `Out for Delivery`). The agent with the fewest active jobs is selected.
-
----
-
-## 5. Failed Delivery State Machine
-
-Shipment failures represent a key operational cost. The system manages failures through state transition boundaries:
-* **Failure Trigger:** Agent flags status as `Failed` and inputs a mandatory failure reason. The active agent is unassigned.
-* **Notification & Reschedule:** An alert email/SMS is sent to the customer. The customer logs in to select a new delivery date.
-* **Re-trigger Workflow:** Rescheduling transitions the order status back to `Pending`, resets agent allocations, and automatically invokes the auto-assignment engine to select a fresh agent for the new delivery date.
+• Logging Failure: If a courier cannot complete a delivery, they mark the status as `Failed` on their app and select a reason tag. The package is returned to the local hub.       
+• Rescheduling: The customer receives an alert and can log in to pick a new date. When they reschedule:
+    • The order status resets to `Pending`.
+    • The previous failed reason is cleared.
+    • The previous courier is unassigned.
+• Re-dispatch: The system automatically triggers the auto-assignment engine again to find the best-suited courier for the new delivery date.
