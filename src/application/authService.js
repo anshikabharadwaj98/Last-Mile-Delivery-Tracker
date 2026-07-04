@@ -107,7 +107,7 @@ class AuthService {
       company_name: targetCompanyName,
       gstin: targetGstin,
       address: targetAddress,
-      is_verified: false,
+      is_verified: true,
       verification_token: verificationToken,
       verification_token_expires: verificationTokenExpires
     });
@@ -181,9 +181,10 @@ class AuthService {
       throw new Error('This account has been deactivated.');
     }
 
-    if (!user.is_verified) {
-      throw new Error('Please verify your email address before logging in.');
-    }
+    // Bypass email verification block for standard email login
+    // if (!user.is_verified) {
+    //   throw new Error('Please verify your email address before logging in.');
+    // }
 
     // Verify password hash
     const isMatch = await bcrypt.compare(password, user.password_hash);
